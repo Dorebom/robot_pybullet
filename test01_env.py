@@ -13,10 +13,10 @@ if __name__ == '__main__':
     work_base_pose = [0.4, 0, 0, 0, 0, 0]
 
     _env = Env()
-    _env.load_robot(tool_pose = robot_tool_pose, \
-                    base_pose = robot_base_pose, \
-                    tcp_pose = robot_tcp_pose)
-    _env.load_work(work_base_pose)
+    _env.load(robot_tool_pose = robot_tool_pose, \
+                    robot_base_pose = robot_base_pose, \
+                    robot_tcp_pose = robot_tcp_pose, \
+                    work_base_pose = work_base_pose)
     time.sleep(1)
 
     robot_base_pose = [0, 0, 0, 0, 0, 0]
@@ -30,11 +30,11 @@ if __name__ == '__main__':
 
     time.sleep(1)
 
-    act_tcp_pose, act_force = _env.robot.get_state()
+    act_tcp_pose, act_force = _env.observe_state()
 
-    cmd_tcp_pose = np.array(act_tcp_pose) + np.array([0.0005, 0.0, 0.0, 0.0, 0.0, 0.0])
+    #cmd_tcp_pose = np.array(act_tcp_pose) + np.array([0.0005, 0.0, 0.0, 0.0, 0.0, 0.0])
 
-    _env.robot.move_to_pose(cmd_tcp_pose)
+    #_env.robot.move_to_pose(cmd_tcp_pose)
 
     time.sleep(1)
 

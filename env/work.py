@@ -29,3 +29,11 @@ class Work():
     def reset(self, base_pose = [0, 0, 0, 0, 0, 0]):
         #self.remove()
         self.load(base_pose = base_pose)
+
+    def get_state(self):
+        work_states = p.getLinkState(self.work_id, 6)
+        self.act_abs_work_pose = np.zeros(6)
+        self.act_abs_work_pose[:3] = np.array(work_states[0])
+        self.act_abs_work_pose[3:6] = np.array(p.getEulerFromQuaternion(work_states[1]))
+
+        return self.act_abs_work_pose

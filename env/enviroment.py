@@ -16,15 +16,23 @@ class Env():
         # Plane
         p.loadURDF("urdf/plane/plane.urdf", [0, 0, -0.1])
 
-    def load_robot(self, tcp_pose = [0, 0, 0, 0, 0, 0], \
+    def load(self, robot_tcp_pose = [0, 0, 0, 0, 0, 0], \
+            robot_base_pose = [0, 0, 0, 0, 0, 0], \
+            robot_tool_pose = [0, 0, 0, 0, 0, 0], \
+            work_base_pose = [0, 0, 0, 0, 0, 0]):
+
+        self._load_robot(tcp_pose = robot_tcp_pose, \
+                        base_pose = robot_base_pose, \
+                        tool_pose = robot_tool_pose)
+
+        self.work = Work(base_pose = work_base_pose)
+
+    def _load_robot(self, tcp_pose = [0, 0, 0, 0, 0, 0], \
                     base_pose = [0, 0, 0, 0, 0, 0], \
                     tool_pose = [0, 0, 0, 0, 0, 0]):
 
         self.robot = Manipulator(tool_pose=tool_pose, base_pose=base_pose)
         self.robot.reset_pose(tcp_pose=tcp_pose)
-
-    def load_work(self, base_pose = [0, 0, 0, 0, 0, 0]):
-        self.work = Work(base_pose = base_pose)
 
     def reset(self, tcp_pose = [0, 0, 0, 0, 0, 0], \
                     base_pose = [0, 0, 0, 0, 0, 0], \
@@ -38,9 +46,23 @@ class Env():
         self.work.reset(base_pose = work_pose)
 
         self.robot.reset(tcp_pose = tcp_pose, \
-                         base_pose = base_pose, \
-                         tool_pose = tool_pose)
+                        base_pose = base_pose, \
+                        tool_pose = tool_pose)
 
     def destory(self):
         p.disconnect()
 
+    def observe_state(self):
+        act_tcp_pose, act_force = self.robot.get_state()
+        act_work_pose = self.work.get_state()
+
+        rel_tcp_pose = np.array(act_tcp_pose) - np.array(act_work_pose)
+
+        '''
+        ノイズ処理
+        '''
+
+        return rel_tcp_pose, act_force
+
+    def step(self, action):
+        pass
