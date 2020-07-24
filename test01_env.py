@@ -17,7 +17,7 @@ if __name__ == '__main__':
                     base_pose = robot_base_pose, \
                     tcp_pose = robot_tcp_pose)
     _env.load_work(work_base_pose)
-    time.sleep(3)
+    time.sleep(1)
 
     robot_base_pose = [0, 0, 0, 0, 0, 0]
     robot_tool_pose = [0.0, -0.4, -0.2, 0, 0, 0]
@@ -28,7 +28,7 @@ if __name__ == '__main__':
                tcp_pose = robot_tcp_pose, \
                work_pose = work_base_pose)
 
-    time.sleep(3)
+    time.sleep(1)
 
     act_tcp_pose, act_force = _env.robot.get_state()
 
@@ -36,6 +36,6 @@ if __name__ == '__main__':
 
     _env.robot.move_to_pose(cmd_tcp_pose)
 
-    time.sleep(3)
+    time.sleep(1)
 
     _env.destory()
