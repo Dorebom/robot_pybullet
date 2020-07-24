@@ -24,9 +24,9 @@ if __name__ == '__main__':
     robot_tcp_pose = [0.5, 0, 0.2, 0, 0, 0]
 
     _env.reset(tool_pose = robot_tool_pose, \
-               base_pose = robot_base_pose, \
-               tcp_pose = robot_tcp_pose, \
-               work_pose = work_base_pose)
+                base_pose = robot_base_pose, \
+                tcp_pose = robot_tcp_pose, \
+                work_pose = work_base_pose)
 
     time.sleep(1)
 
