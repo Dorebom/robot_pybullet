@@ -34,10 +34,10 @@ class ReplayBuffer:
     def sample_batch(self, batch_size=32):
         idxs = np.random.randint(0, self.size, size=batch_size)
         batch = dict(obs=self.obs_buf[idxs],
-                     obs2=self.obs2_buf[idxs],
-                     act=self.act_buf[idxs],
-                     rew=self.rew_buf[idxs],
-                     done=self.done_buf[idxs])
+                    obs2=self.obs2_buf[idxs],
+                    act=self.act_buf[idxs],
+                    rew=self.rew_buf[idxs],
+                    done=self.done_buf[idxs])
         return {k: torch.as_tensor(v, dtype=torch.float32) for k,v in batch.items()}
 
 
@@ -200,7 +200,7 @@ def sac(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
 
         # Useful info for logging
         q_info = dict(Q1Vals=q1.detach().numpy(),
-                      Q2Vals=q2.detach().numpy())
+                    Q2Vals=q2.detach().numpy())
 
         return loss_q, q_info
 
@@ -237,7 +237,7 @@ def sac(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
         # Record things
         logger.store(LossQ=loss_q.item(), **q_info)
 
-        # Freeze Q-networks so you don't waste computational effort 
+        # Freeze Q-networks so you don't waste computational effort
         # computing gradients for them during the policy learning step.
         for p in q_params:
             p.requires_grad = False
@@ -265,7 +265,7 @@ def sac(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
 
     def get_action(o, deterministic=False):
         return ac.act(torch.as_tensor(o, dtype=torch.float32), 
-                      deterministic)
+                    deterministic)
 
     def test_agent():
         for j in range(num_test_episodes):

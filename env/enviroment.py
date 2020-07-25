@@ -1,11 +1,13 @@
 import numpy as np
 import pybullet as p
+import gym
+from gym import spaces
 
 from env.robot import Manipulator
 from env.work import Work
 
 class Env():
-    def __init__(self):
+    def __init__(self, reward):
         p.connect(p.GUI)
         p.setPhysicsEngineParameter(enableFileCaching=0)
         p.setRealTimeSimulation(False)
@@ -15,6 +17,22 @@ class Env():
 
         # Plane
         p.loadURDF("urdf/plane/plane.urdf", [0, 0, -0.1])
+
+        # for learning
+        self.action_space = spaces.Box(
+            low=-1,
+            high=1,
+            shape=(6,),
+            dtype=np.float32
+        )
+        self.observation_space = spaces.Box(
+            low=-1,
+            high=1,
+            shape=(12,),
+            dtype=np.float32
+        )
+        self.reward = reward
+
 
     def load(self, robot_tcp_pose = [0, 0, 0, 0, 0, 0], \
             robot_base_pose = [0, 0, 0, 0, 0, 0], \
@@ -66,3 +84,6 @@ class Env():
 
     def step(self, action):
         pass
+
+    def get_reward(self, relative_pose, success, act_step):
+        return self.reward.reward_function(relative_pose, success, act_step)
