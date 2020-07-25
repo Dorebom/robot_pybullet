@@ -17,14 +17,13 @@ class BasicReward():
         self.scale_pos_coef = scale_pos_coef
         self.scale_orn_coef = scale_orn_coef
 
-    def reward_function(self, relative_pose, success, act_step):
+    def reward_function(self, relative_pose, success, out_range, act_step):
         if success:
             return self.success_reward
         else:
             # 1
             range_out_cost = 0
-            if any([abs(pos) > self.range_out_pos for pos in relative_pose[:3]]) \
-                or any([abs(orn) > self.range_out_orn for orn in relative_pose[3:6]]):
+            if out_range:
                 range_out_cost = self.range_out_cost * (self.total_step - act_step)
             # 2
             relative_pose_cost = np.linalg.norm(relative_pose[:3]) * self.scale_pos_coef \
@@ -32,4 +31,4 @@ class BasicReward():
 
             # 3 [後日追加予定]スタック状態維持は負の報酬、解除は正の報酬
 
-            return - range_out_cost - relative_pose_cost
+            return -range_out_cost - relative_pose_cost

@@ -153,7 +153,6 @@ class Sac():
                 lr = 1e-3,
                 alpha = 0.2,
                 batch_size = 100,
-                start_steps = 10000,
                 update_after = 1000,
                 update_every = 50,
                 num_test_episodes = 10,
@@ -174,12 +173,10 @@ class Sac():
         self.lr = lr
         self.alpha = alpha
         self.batch_size = batch_size
-        self.start_steps = start_steps
         self.update_after = update_after
         self.update_every = update_every
         self.num_test_episodes = num_test_episodes
         self.max_ep_len = max_ep_len
-        #self.logger_kwargs = logger_kwargs
         self.save_freq = save_freq
 
         # Action limit for clamping: critically, assumes all dimensions share the same bound!
@@ -256,7 +253,34 @@ class Sac():
         return loss_pi, pi_info
 
     def update(self, data):
-        pass
+        # First run one gradient descent step for Q1 and Q2
+        self.q_optimizer.zero_grad()
+        loss_q, q_info = self.compute_loss_q(data)
+        loss_q.backward()
+        self.q_optimizer.step()
+
+        # Freeze Q-networks so you don't waste computational effort 
+        # computing gradients for them during the policy learning step.
+        for p in self.q_params:
+            p.requires_grad = False
+
+        # Next run one gradient descent step for pi.
+        self.pi_optimizer.zero_grad()
+        loss_pi, pi_info = self.compute_loss_pi(data)
+        loss_pi.backward()
+        self.pi_optimizer.step()
+
+        # Unfreeze Q-networks so you can optimize it at next DDPG step.
+        for p in self.q_params:
+            p.requires_grad = True
+
+        # Finally, update target networks by polyak averaging.
+        with torch.no_grad():
+            for p, p_targ in zip(self.ac.parameters(), self.ac_targ.parameters()):
+                # NB: We use an in-place operations "mul_", "add_" to update target
+                # params, as opposed to "mul" and "add", which would make new tensors.
+                p_targ.data.mul_(self.polyak)
+                p_targ.data.add_((1 - self.polyak) * p.data)
 
     def get_action(self, obs, deterministic=False):
-        pass
+        return self.ac.act(torch.as_tensor(obs, dtype=torch.float32), deterministic)
