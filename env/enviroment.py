@@ -118,7 +118,7 @@ class Env():
         out_range_of_pos = 0.05
         out_range_of_orn = 0.8
         out_range = any([abs(pos) > out_range_of_pos for pos in self.act_rel_tcp_pose[:3]]) \
-                or any([abs(orn) > out_range_of_orn for orn in self.act_rel_tcp_pose[3:6]]):
+                or any([abs(orn) > out_range_of_orn for orn in self.act_rel_tcp_pose[3:6]])
 
         return self.act_rel_tcp_pose, scaled_act_force, success, out_range
 
