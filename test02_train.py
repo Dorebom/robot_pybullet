@@ -26,6 +26,6 @@ if __name__ == '__main__':
     _sac = Sac(_env)
     _trainer = Trainer(_sac)
 
-    time.sleep(1)
+    time.sleep(2)
 
     _sac.env.destory()
