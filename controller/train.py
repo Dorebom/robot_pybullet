@@ -17,11 +17,26 @@ class Trainer():
         # [要確認]最初のstepだけobsを取得
 
         if self.total_step_counter > self.start_steps:
-            a = self.agent.get_action(obs)
+            a = self.agent.get_action(self.obs)
         else:
             a = self.agent.env.action_space.sample()
 
         scaled_a = self.agent.env.scale_action(a)
-        obs, r, done, success = self.agent.env.step(scaled_a)
+        new_obs, r, done, success = self.agent.env.step(scaled_a)
 
-        # [要確認]状態量の捉え方が甘い気がする．確認しよう．
+        self.agent.replay_buffer.store(obs, a, r, new_obs, done)
+
+        self.obs = new_obs
+
+        # Update handling
+        if total_step_counter >= self.agent.update_after and self.total_step_counter % self.agent.update_every == 0:
+            for j in range(self.agent.update_every):
+                batch = self.agent.replay_buffer.sample_batch(self.agent.batch_size)
+                self.agent.update(data=batch)
+
+        # End of episode handling
+
+
+
+    def init_epoch(self)
+
