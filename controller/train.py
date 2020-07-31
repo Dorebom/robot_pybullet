@@ -1,8 +1,17 @@
+from copy import deepcopy
 from datetime import datetime
 import collections
 from torch.utils.tensorboard import SummaryWriter
+import numpy as np
 
 class Trainer():
+    """
+    __init__
+    _tarin
+    _reset
+    train
+    """
+
     def __init__(self, agent,
                 start_steps = 1000,
                 steps_per_episode=150,
@@ -15,11 +24,13 @@ class Trainer():
 
         self.step_from_start_episode = 0
         self.ep = 0
+        self.act_step = 0
 
         # Create a logger
-        self.writer = SummaryWriter("runs/"+datetime.today().strftime('%Y-%m-%d-%H:%M:%S'))
+        str_date = datetime.today().strftime("%Y_%m_%d_%H_%M_%S")
+        self.writer = SummaryWriter(log_dir='runs/'+str_date)
 
-    def _train(self):
+    def _train(self, obs):
         # Until start_steps have elapsed, randomly sample actions
         # from a uniform distribution for better exploration. Afterwards,
         # use the learned policy.
@@ -27,19 +38,19 @@ class Trainer():
         # [要確認]最初のstepだけobsを取得
 
         if self.total_step_counter > self.start_steps:
-            a = self.agent.get_action(self.obs)
+            a = self.agent.get_action(obs)
         else:
             a = self.agent.env.action_space.sample()
 
         scaled_a = self.agent.env.scale_action(a)
-        new_obs, r, done, success = self.agent.env.step(scaled_a)
+        new_obs, r, done, success = self.agent.env.step(action = scaled_a, step = self.act_step)
 
         self.agent.replay_buffer.store(obs, a, r, new_obs, done)
 
         self.obs = new_obs
 
         # Update handling
-        if total_step_counter >= self.agent.update_after \
+        if self.total_step_counter >= self.agent.update_after \
             and self.total_step_counter % self.agent.update_every == 0:
             for j in range(self.agent.update_every):
                 batch = self.agent.replay_buffer.sample_batch(self.agent.batch_size)
@@ -47,8 +58,26 @@ class Trainer():
 
         return obs, r, done, success
 
-    def init_episode(self):
-        pass
+    def _reset(self):
+
+        self.robot_base_pose = np.array([0, 0, 0, 0, 0, 0])
+        self.work_base_pose = np.array([0.5, 0, 0, 0, 0, 0])
+
+        self.robot_tool_pose = np.array([0.0, 0.0, 0.2, 0, 0, 0])
+
+        self.rel_robot_tcp_pose = np.array([0.0, 0.0, 0.2, 0, 0, 0])
+
+        #self.rel_robot_tcp_pose[:3] += np.random.uniform(-0.02, 0.02, 3)
+        #self.rel_robot_tcp_pose[3:] += np.random.uniform(-0.02, 0.02, 3)
+
+        self.abs_robot_tcp_pose = self.rel_robot_tcp_pose + self.work_base_pose
+
+        self.agent.env.reset(tcp_pose=self.abs_robot_tcp_pose,
+                             base_pose=self.robot_base_pose,
+                             tool_pose=self.robot_tool_pose,
+                             work_pose=self.work_base_pose)
+
+        return obs
 
 
     def train(self):
@@ -57,28 +86,30 @@ class Trainer():
         tmp_episode_reward = 0
         step_from_start_episode = 0
 
-        while ep < self.episodes:
-            obs, r, done, success = self._train()
+        obs = self._reset()
+
+        while self.ep < self.episodes:
+            obs, r, done, success = self._train(obs)
 
             tmp_episode_reward += r
 
+            self.act_step += 1
+
             # End of episode handling and next starting
-            if done or (step_from_start_episode+1) % self.steps_per_episode == 0 :
+            if done or (self.act_step + 1) % self.steps_per_episode == 0 :
                 # End process
                 step_from_start_episode = 0
-                ep += 1
-                episodes_reward.append(copy.deepcopy(tmp_episode_reward))
-                self.writer.add_scalar('reward', tmp_episode_reward, ep)
+                self.ep += 1
+                episodes_reward.append(deepcopy(tmp_episode_reward))
+                self.writer.add_scalar('reward', tmp_episode_reward, self.ep)
                 tmp_episode_reward = 0
 
                 distance = np.linalg.norm(obs[:3])
-                sac.writer.add_scalar('distance', distance, ep)
+                self.writer.add_scalar('distance', distance, self.ep)
 
                 episode_success.append(success)
-                self.writer.add_scalar('success', sum(episode_success), ep)
+                self.writer.add_scalar('success', sum(episode_success), self.ep)
 
                 # Next starting
-                base_pose = np.array([0.0,0,0.1,0,0,0])
-                base_pose[:3]+=np.random.uniform(-0.02, 0.02, 3)
-                base_pose[3:]+=np.random.uniform(-0.02, 0.02, 3)
-                obs = sac.env.reset(base_pose)
+                self.act_step = 0
+                obs = self.agent.env.reset()

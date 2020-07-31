@@ -49,9 +49,6 @@ class Env():
         self.max_step_pos_noise = step_pos_noise
         self.max_step_orn_noise = step_orn_noise
 
-        self.step_counter = 0
-        self.epoch_counter = 0
-
     def load(self, robot_tcp_pose = [0, 0, 0, 0, 0, 0], \
             robot_base_pose = [0, 0, 0, 0, 0, 0], \
             robot_tool_pose = [0, 0, 0, 0, 0, 0], \
@@ -93,12 +90,7 @@ class Env():
     def destory(self):
         p.disconnect()
 
-    def reset_epoch(self):
-        self.step_counter   = 0
-        self.epoch_counter += 1
-
-    def step(self, action):
-        self.step_counter += 1
+    def step(self, action, step):
 
         # ここは指令値生成なので，真値が良い
         cmd_abs_tcp_pose = np.zeros(6)
@@ -112,7 +104,7 @@ class Env():
         r = self.calc_reward(relative_pose = pose,
                             success = success,
                             out_range = out_range,
-                            act_step = self.step_counter)
+                            act_step = step)
 
         done = success or out_range
 
