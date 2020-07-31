@@ -166,7 +166,7 @@ class Env():
         self.act_abs_tcp_pose, self.act_force = self.robot.get_state()
         self.act_abs_work_pose = self.work.get_state()
 
-        self.act_rel_tcp_pose = np.array(self.act_abs_tcp_pose) - np.array(self.act_abs_work_pose)
+        self._act_rel_tcp_pose = np.array(self._act_abs_tcp_pose) - np.array(self._act_abs_work_pose)
         '''
         ノイズ処理
         '''
