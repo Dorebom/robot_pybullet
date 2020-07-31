@@ -30,6 +30,41 @@ class Trainer():
         str_date = datetime.today().strftime("%Y_%m_%d_%H_%M_%S")
         self.writer = SummaryWriter(log_dir='runs/'+str_date)
 
+    def _init(self):
+        # env init
+        self.robot_base_pose = np.array([0, 0, 0, 0, 0, 0])
+        self.work_base_pose = np.array([0.5, 0, 0, 0, 0, 0])
+        self.robot_tool_pose = np.array([0.0, 0.0, 0.15, 0, 0, 0])
+        self.rel_robot_tcp_pose = np.array([0.0, 0.0, 0.2, 0, 0, 0])
+        self.rel_robot_tcp_pose[:3] += np.random.uniform(-0.02, 0.02, 3)
+        self.rel_robot_tcp_pose[3:] += np.random.uniform(-0.02, 0.02, 3)
+
+        act_rel_tcp_pose, act_force = self.agent.env.init_env(mode='rel',
+                                        robot_base_pose=self.robot_base_pose,
+                                        robot_tool_pose=self.robot_tool_pose,
+                                        robot_tcp_pose=self.rel_robot_tcp_pose,
+                                        work_base_pose=self.work_base_pose)
+
+        return np.concatenate([act_rel_tcp_pose, act_force])
+
+    def _reset(self):
+
+        self.robot_base_pose = np.array([0, 0, 0, 0, 0, 0])
+        self.work_base_pose = np.array([0.5, 0, 0, 0, 0, 0])
+        self.robot_tool_pose = np.array([0.0, 0.0, 0.15, 0, 0, 0])
+        self.rel_robot_tcp_pose = np.array([0.0, 0.0, 0.2, 0, 0, 0])
+        self.rel_robot_tcp_pose[:3] += np.random.uniform(-0.02, 0.02, 3)
+        self.rel_robot_tcp_pose[3:] += np.random.uniform(-0.02, 0.02, 3)
+
+        act_rel_tcp_pose, act_force = self.agent.env.reset(mode='rel',
+                            tcp_pose=self.rel_robot_tcp_pose,
+                            base_pose=self.robot_base_pose,
+                            tool_pose=self.robot_tool_pose,
+                            work_pose=self.work_base_pose)
+
+        return np.concatenate([act_rel_tcp_pose, act_force])
+
+
     def _train(self, obs):
         # Until start_steps have elapsed, randomly sample actions
         # from a uniform distribution for better exploration. Afterwards,
@@ -58,37 +93,16 @@ class Trainer():
 
         return obs, r, done, success
 
-    def _reset(self):
-
-        self.robot_base_pose = np.array([0, 0, 0, 0, 0, 0])
-        self.work_base_pose = np.array([0.5, 0, 0, 0, 0, 0])
-
-        self.robot_tool_pose = np.array([0.0, 0.0, 0.2, 0, 0, 0])
-
-        self.rel_robot_tcp_pose = np.array([0.0, 0.0, 0.2, 0, 0, 0])
-
-        #self.rel_robot_tcp_pose[:3] += np.random.uniform(-0.02, 0.02, 3)
-        #self.rel_robot_tcp_pose[3:] += np.random.uniform(-0.02, 0.02, 3)
-
-        self.abs_robot_tcp_pose = self.rel_robot_tcp_pose + self.work_base_pose
-
-        self.agent.env.reset(tcp_pose=self.abs_robot_tcp_pose,
-                             base_pose=self.robot_base_pose,
-                             tool_pose=self.robot_tool_pose,
-                             work_pose=self.work_base_pose)
-
-        return obs
-
-
     def train(self):
         # initialize
         all_rewards, episode_success, episodes_reward = [], [], []
         tmp_episode_reward = 0
         step_from_start_episode = 0
 
-        obs = self._reset()
+        obs = self._init()
 
         while self.ep < self.episodes:
+
             obs, r, done, success = self._train(obs)
 
             tmp_episode_reward += r

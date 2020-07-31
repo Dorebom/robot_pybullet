@@ -40,7 +40,7 @@ class ReplayBuffer:
         return {k: torch.as_tensor(v, dtype=torch.float32) for k,v in batch.items()}
 
 
-class Sac():
+class SoftActorCritic():
     """
     Auther: dorebom
     Citation: https://github.com/openai/spinningup

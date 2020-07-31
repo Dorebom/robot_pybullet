@@ -22,8 +22,23 @@ class Env():
         p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
         p.setPhysicsEngineParameter(contactBreakingThreshold=0.001)
 
+        # Init
+        self._is_init_env = False
+
         # Plane
-        p.loadURDF("urdf/plane/plane.urdf", [0, 0, -0.1])
+        self.plane_pos = [0, 0, -0.1]
+        p.loadURDF("urdf/plane/plane.urdf", self.plane_pos)
+
+        self.reward = reward
+
+        self.max_initial_pos_noise = initial_pos_noise
+        self.max_initial_orn_noise = initial_orn_noise
+        self.max_step_pos_noise = step_pos_noise
+        self.max_step_orn_noise = step_orn_noise
+        # robot
+        self.step_max_pos = step_max_pos
+        self.step_max_orn = step_max_orn
+        self.inv_scaled_force_coef = 5000
 
         # for learning
         self.action_space = spaces.Box(
@@ -38,54 +53,66 @@ class Env():
             shape=(12,),
             dtype=np.float32
         )
-        self.step_max_pos = step_max_pos
-        self.step_max_orn = step_max_orn
-        self.inv_scaled_force_coef = 5000
 
-        self.reward = reward
-
-        self.max_initial_pos_noise = initial_pos_noise
-        self.max_initial_orn_noise = initial_orn_noise
-        self.max_step_pos_noise = step_pos_noise
-        self.max_step_orn_noise = step_orn_noise
-
-    def load(self, robot_tcp_pose = [0, 0, 0, 0, 0, 0], \
-            robot_base_pose = [0, 0, 0, 0, 0, 0], \
-            robot_tool_pose = [0, 0, 0, 0, 0, 0], \
+    def init_env(self, mode = 'rel',
+            robot_tcp_pose = [0, 0, 0, 0, 0, 0],
+            robot_base_pose = [0, 0, 0, 0, 0, 0],
+            robot_tool_pose = [0, 0, 0, 0, 0, 0],
             work_base_pose = [0, 0, 0, 0, 0, 0]):
+        if self._is_init_env == False:
+            # Load work
+            self.work = Work(base_pose = work_base_pose)
+            self.act_abs_work_pose = work_base_pose
+            # Load robot
+            self.robot = Manipulator(tool_pose=robot_tool_pose, base_pose=robot_base_pose)
+            self._reset_robot_pose(mode=mode, tcp_pose=robot_tcp_pose)
+            self.initial_pos_noise = np.random.uniform(-self.max_initial_pos_noise,
+                                                    self.max_initial_pos_noise, 3)
+            self.initial_orn_noise = np.random.uniform(-self.max_initial_orn_noise,
+                                                    self.max_initial_orn_noise, 3)
+            self._is_init_env = True
+        return self.observe_state(mode = mode)
 
-        self._load_robot(tcp_pose = robot_tcp_pose, \
-                        base_pose = robot_base_pose, \
-                        tool_pose = robot_tool_pose)
+    def _reset_robot_pose(self, mode='rel', tcp_pose=[0, 0, 0, 0, 0, 0]):
+        abs_tcp_pose = np.zeros(6)
+        if mode == 'rel':
+            abs_tcp_pose = np.array(self.act_abs_work_pose) + np.array(tcp_pose)
+        elif mode == 'abs':
+            abs_tcp_pose = tcp_pose
+        else:
+            print("ERROR(enviroment.py): mode is not correct.")
+            abs_tcp_pose = [0, 0, 0, 0, 0, 0]
+        self.robot.reset_pose(abs_tcp_pose=abs_tcp_pose)
 
-        self.work = Work(base_pose = work_base_pose)
-
-    def _load_robot(self, tcp_pose = [0, 0, 0, 0, 0, 0], \
-                    base_pose = [0, 0, 0, 0, 0, 0], \
-                    tool_pose = [0, 0, 0, 0, 0, 0]):
-
-        self.robot = Manipulator(tool_pose=tool_pose, base_pose=base_pose)
-        self.robot.reset_pose(tcp_pose=tcp_pose)
-
-    def reset(self, tcp_pose = [0, 0, 0, 0, 0, 0], \
-                    base_pose = [0, 0, 0, 0, 0, 0], \
-                    tool_pose = [0, 0, 0, 0, 0, 0], \
-                    work_pose = [0, 0, 0, 0, 0, 0]):
+    def reset(self,
+            mode = 'rel',
+            tcp_pose = [0, 0, 0, 0, 0, 0],
+            base_pose = [0, 0, 0, 0, 0, 0],
+            tool_pose = [0, 0, 0, 0, 0, 0],
+            work_pose = [0, 0, 0, 0, 0, 0]):
+        if self._is_init_env == False:
+            return self.init_env(mode = mode,
+                        robot_tcp_pose = tcp_pose,
+                        robot_base_pose = base_pose,
+                        robot_tool_pose = tool_pose,
+                        work_base_pose = work_pose)
+        # Reset env
         self.robot.remove()
         p.resetSimulation()
-        # Plane
-        p.loadURDF("urdf/plane/plane.urdf", [0, 0, -0.1])
-
+        # Load Plane
+        p.loadURDF("urdf/plane/plane.urdf", self.plane_pos)
+        # Reset work
         self.work.reset(base_pose = work_pose)
-
-        self.robot.reset(tcp_pose = tcp_pose, \
-                        base_pose = base_pose, \
-                        tool_pose = tool_pose)
-
+        # Reset Robot
+        self.robot.reset_base(base_pose=base_pose, tool_pose=tool_pose)
+        self._reset_robot_pose(mode='rel', tcp_pose=[0, 0, 0, 0, 0, 0])
         self.initial_pos_noise = np.random.uniform(-self.max_initial_pos_noise,
                                                     self.max_initial_pos_noise, 3)
         self.initial_orn_noise = np.random.uniform(-self.max_initial_orn_noise,
                                                     self.max_initial_orn_noise, 3)
+
+        return self.observe_state(mode = mode)
+
 
     def destory(self):
         p.disconnect()
@@ -99,7 +126,7 @@ class Env():
 
         self.robot.move_to_pose(cmd_abs_tcp_pose)
 
-        pose, force, success, out_range = self.decision_process()
+        pose, force, success, out_range = self.decision()
 
         r = self.calc_reward(relative_pose = pose,
                             success = success,
@@ -110,7 +137,7 @@ class Env():
 
         return np.concatenate([pose, force]), r, done, success
 
-    def decision_process(self):
+    def decision(self):
         '''
         observe
         act_abs_tcp_pose
@@ -118,14 +145,14 @@ class Env():
         act_abs_work_pose
         act_force
         '''
-        act_pose_noisy, act_force = self.observe_state()
+        act_pose_noisy, act_force = self.observe_state(mode='rel')
         scaled_act_force = act_force / self.inv_scaled_force_coef
 
         # [Note] ここは真値で評価
         success_range_of_pos = 0.003
         success_range_of_orn = 0.02
         success = (np.linalg.norm(self.act_rel_tcp_pose[:3]) <= success_range_of_pos and \
-                    np.linalg.norm(self.act_rel_tcp_pose[3:]) <= success_range_of_orn) 
+                    np.linalg.norm(self.act_rel_tcp_pose[3:]) <= success_range_of_orn)
 
         # [Note] ここは真値で評価は正しくない気がする．
         out_range_of_pos = 0.05
@@ -135,7 +162,7 @@ class Env():
 
         return act_pose_noisy, scaled_act_force, success, out_range
 
-    def observe_state(self):
+    def observe_state(self, mode='rel'):
         self.act_abs_tcp_pose, self.act_force = self.robot.get_state()
         self.act_abs_work_pose = self.work.get_state()
 
@@ -151,8 +178,16 @@ class Env():
                                                     self.max_step_pos_noise, 3)
         act_rel_tcp_pose_noisy[3:6] += np.random.uniform(-self.max_step_orn_noise,
                                                     self.max_step_orn_noise, 3)
-
-        return act_rel_tcp_pose_noisy, self.act_force
+        if mode == 'rel':
+            return act_rel_tcp_pose_noisy, self.act_force
+        elif mode == 'abs':
+            act_abs_tcp_pose_noisy = np.zeros(6)
+            act_abs_tcp_pose_noisy[:3] = self.act_abs_tcp_pose[:3] + self.initial_pos_noise
+            act_abs_tcp_pose_noisy[3:6] = self.act_abs_tcp_pose[3:6] + self.initial_orn_noise
+            act_abs_work_pose_noisy = np.zeros(6)
+            act_abs_work_pose_noisy[:3] = self.act_abs_work_pose[:3] + self.initial_pos_noise
+            act_abs_work_pose_noisy[3:6] = self.act_abs_work_pose[3:6] + self.initial_orn_noise
+            return act_abs_tcp_pose_noisy, act_abs_work_pose_noisy, self.act_force
 
     def calc_reward(self, relative_pose, success, out_range, act_step):
         return self.reward.reward_function(relative_pose, success, out_range, act_step)

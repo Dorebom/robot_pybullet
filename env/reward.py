@@ -1,7 +1,5 @@
 import numpy as np
 
-
-
 class BasicReward():
     def __init__(self, success_reward = 1,
                 range_out_pos = 0.05,
