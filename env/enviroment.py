@@ -67,10 +67,12 @@ class Env():
         self.robot = Manipulator(tool_pose=tool_pose, base_pose=base_pose)
         self.robot.reset_pose(tcp_pose=tcp_pose)
 
-    def reset(self, tcp_pose = [0, 0, 0, 0, 0, 0], \
-                    base_pose = [0, 0, 0, 0, 0, 0], \
-                    tool_pose = [0, 0, 0, 0, 0, 0], \
+    def reset(self, mode = 'abs',
+                    tcp_pose = [0, 0, 0, 0, 0, 0],
+                    base_pose = [0, 0, 0, 0, 0, 0],
+                    tool_pose = [0, 0, 0, 0, 0, 0],
                     work_pose = [0, 0, 0, 0, 0, 0]):
+
         self.robot.remove()
         p.resetSimulation()
         # Plane
@@ -78,14 +80,17 @@ class Env():
 
         self.work.reset(base_pose = work_pose)
 
-        self.robot.reset(tcp_pose = tcp_pose, \
-                        base_pose = base_pose, \
-                        tool_pose = tool_pose)
+        if mode == 'abs':
+            self.robot.reset(tcp_pose = tcp_pose, \
+                            base_pose = base_pose, \
+                            tool_pose = tool_pose)
+        elif mode == 'rel':
+            abs_tcp_pose = np.array(work_pose) + np.array(tcp_pose)
+            self.robot.reset(tcp_pose = abs_tcp_pose, \
+                            base_pose = base_pose, \
+                            tool_pose = tool_pose)
 
-        self.initial_pos_noise = np.random.uniform(-self.max_initial_pos_noise,
-                                                    self.max_initial_pos_noise, 3)
-        self.initial_orn_noise = np.random.uniform(-self.max_initial_orn_noise,
-                                                    self.max_initial_orn_noise, 3)
+        return self.decision_process()
 
     def destory(self):
         p.disconnect()
@@ -118,14 +123,16 @@ class Env():
         act_abs_work_pose
         act_force
         '''
-        act_pose_noisy, act_force = self.observe_state()
+        mode = 'rel'
+
+        act_pose_noisy, act_force = self.observe_state(mode)
         scaled_act_force = act_force / self.inv_scaled_force_coef
 
         # [Note] ここは真値で評価
         success_range_of_pos = 0.003
         success_range_of_orn = 0.02
-        success = (np.linalg.norm(self.act_rel_tcp_pose[:3]) <= success_range_of_pos and \
-                    np.linalg.norm(self.act_rel_tcp_pose[3:]) <= success_range_of_orn) 
+        success = (np.linalg.norm(self._act_rel_tcp_pose[:3]) <= success_range_of_pos and \
+                    np.linalg.norm(self._act_rel_tcp_pose[3:]) <= success_range_of_orn) 
 
         # [Note] ここは真値で評価は正しくない気がする．
         out_range_of_pos = 0.05
@@ -135,24 +142,28 @@ class Env():
 
         return act_pose_noisy, scaled_act_force, success, out_range
 
-    def observe_state(self):
-        self.act_abs_tcp_pose, self.act_force = self.robot.get_state()
-        self.act_abs_work_pose = self.work.get_state()
+    def observe_state(self, mode = 'abs'):
+        self._act_abs_tcp_pose, self._act_force = self.robot.get_state()
+        self._act_abs_work_pose = self.work.get_state()
 
-        self.act_rel_tcp_pose = np.array(self.act_abs_tcp_pose) - np.array(self.act_abs_work_pose)
+        self._act_rel_tcp_pose = np.array(self._act_abs_tcp_pose) - np.array(self._act_abs_work_pose)
         '''
         ノイズ処理
         '''
-        act_rel_tcp_pose_noisy = np.zeros(6)
-        act_rel_tcp_pose_noisy[:3] = self.act_rel_tcp_pose[:3] + self.initial_pos_noise
-        act_rel_tcp_pose_noisy[3:6] = self.act_rel_tcp_pose[3:6] + self.initial_orn_noise
+        act_return_tcp_pose_noisy = np.zeros(6)
+        if mode == 'rel':
+            act_return_tcp_pose_noisy = self._act_rel_tcp_pose
+        elif mode == 'abs':
+            act_return_tcp_pose_noisy = self._act_abs_tcp_pose
 
-        act_rel_tcp_pose_noisy[:3] += np.random.uniform(-self.max_step_pos_noise,
-                                                    self.max_step_pos_noise, 3)
-        act_rel_tcp_pose_noisy[3:6] += np.random.uniform(-self.max_step_orn_noise,
-                                                    self.max_step_orn_noise, 3)
+        act_return_tcp_pose_noisy[:3] += self.initial_pos_noise
+        act_return_tcp_pose_noisy[3:6] += self.initial_orn_noise
+        act_return_tcp_pose_noisy[:3] += np.random.uniform(-self.max_step_pos_noise,
+                                                        self.max_step_pos_noise, 3)
+        act_return_tcp_pose_noisy[3:6] += np.random.uniform(-self.max_step_orn_noise,
+                                                        self.max_step_orn_noise, 3)
 
-        return act_rel_tcp_pose_noisy, self.act_force
+        return act_return_tcp_pose_noisy, self.act_force
 
     def calc_reward(self, relative_pose, success, out_range, act_step):
         return self.reward.reward_function(relative_pose, success, out_range, act_step)
