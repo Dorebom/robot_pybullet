@@ -16,7 +16,7 @@ if __name__ == '__main__':
                                 scale_orn_coef = 1000)
     _env = Env(reward = _reward)
     _sac = SoftActorCritic(_env)
-    _trainer = Trainer(_sac)
+    _trainer = Trainer(agent=_sac, episodes=500)
 
     _trainer.train()
 

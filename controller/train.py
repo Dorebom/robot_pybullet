@@ -3,6 +3,7 @@ from datetime import datetime
 import collections
 from torch.utils.tensorboard import SummaryWriter
 import numpy as np
+import time
 
 class Trainer():
     """
@@ -34,10 +35,10 @@ class Trainer():
         # env init
         self.robot_base_pose = np.array([0, 0, 0, 0, 0, 0])
         self.work_base_pose = np.array([0.5, 0, 0, 0, 0, 0])
-        self.robot_tool_pose = np.array([0.0, 0.0, 0.15, 0, 0, 0])
-        self.rel_robot_tcp_pose = np.array([0.0, 0.0, 0.2, 0, 0, 0])
-        self.rel_robot_tcp_pose[:3] += np.random.uniform(-0.02, 0.02, 3)
-        self.rel_robot_tcp_pose[3:] += np.random.uniform(-0.02, 0.02, 3)
+        self.robot_tool_pose = np.array([0.0, 0.0, -0.15, 0, 0, 0])
+        self.rel_robot_tcp_pose = np.array([0.0, 0.0, 0.08, 0, 0, 0])
+        #self.rel_robot_tcp_pose[:3] += np.random.uniform(-0.02, 0.02, 3)
+        #self.rel_robot_tcp_pose[3:] += np.random.uniform(-0.02, 0.02, 3)
 
         act_rel_tcp_pose, act_force = self.agent.env.init_env(mode='rel',
                                         robot_base_pose=self.robot_base_pose,
@@ -51,10 +52,10 @@ class Trainer():
 
         self.robot_base_pose = np.array([0, 0, 0, 0, 0, 0])
         self.work_base_pose = np.array([0.5, 0, 0, 0, 0, 0])
-        self.robot_tool_pose = np.array([0.0, 0.0, 0.15, 0, 0, 0])
-        self.rel_robot_tcp_pose = np.array([0.0, 0.0, 0.2, 0, 0, 0])
-        self.rel_robot_tcp_pose[:3] += np.random.uniform(-0.02, 0.02, 3)
-        self.rel_robot_tcp_pose[3:] += np.random.uniform(-0.02, 0.02, 3)
+        self.robot_tool_pose = np.array([0.0, 0.0, -0.15, 0, 0, 0])
+        self.rel_robot_tcp_pose = np.array([0.0, 0.0, 0.08, 0, 0, 0])
+        #self.rel_robot_tcp_pose[:3] += np.random.uniform(-0.02, 0.02, 3)
+        #self.rel_robot_tcp_pose[3:] += np.random.uniform(-0.02, 0.02, 3)
 
         act_rel_tcp_pose, act_force = self.agent.env.reset(mode='rel',
                             tcp_pose=self.rel_robot_tcp_pose,
@@ -78,6 +79,9 @@ class Trainer():
             a = self.agent.env.action_space.sample()
 
         scaled_a = self.agent.env.scale_action(a)
+
+        scaled_a = [0, 0, -0.001, 0, 0, 0]
+
         new_obs, r, done, success = self.agent.env.step(action = scaled_a, step = self.act_step)
 
         self.agent.replay_buffer.store(obs, a, r, new_obs, done)
@@ -126,4 +130,4 @@ class Trainer():
 
                 # Next starting
                 self.act_step = 0
-                obs = self.agent.env.reset()
+                obs = self._reset()

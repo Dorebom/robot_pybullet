@@ -53,6 +53,7 @@ class Env():
             shape=(12,),
             dtype=np.float32
         )
+        self._act_rel_tcp_pose = [0, 0, 0, 0, 0, 0]
 
     def init_env(self, mode = 'rel',
             robot_tcp_pose = [0, 0, 0, 0, 0, 0],
@@ -105,7 +106,7 @@ class Env():
         self.work.reset(base_pose = work_pose)
         # Reset Robot
         self.robot.reset_base(base_pose=base_pose, tool_pose=tool_pose)
-        self._reset_robot_pose(mode='rel', tcp_pose=[0, 0, 0, 0, 0, 0])
+        self._reset_robot_pose(mode='rel', tcp_pose=tcp_pose)
         self.initial_pos_noise = np.random.uniform(-self.max_initial_pos_noise,
                                                     self.max_initial_pos_noise, 3)
         self.initial_orn_noise = np.random.uniform(-self.max_initial_orn_noise,
@@ -121,8 +122,8 @@ class Env():
 
         # ここは指令値生成なので，真値が良い
         cmd_abs_tcp_pose = np.zeros(6)
-        cmd_abs_tcp_pose[:3] = np.array(self.act_abs_tcp_pose[:3]) + np.array(action[:3])
-        cmd_abs_tcp_pose[3:6] = np.array(self.act_abs_tcp_pose[3:6]) + np.array(action[3:6])
+        cmd_abs_tcp_pose[:3] = np.array(self._act_abs_tcp_pose[:3]) + np.array(action[:3])
+        cmd_abs_tcp_pose[3:6] = np.array(self._act_abs_tcp_pose[3:6]) + np.array(action[3:6])
 
         self.robot.move_to_pose(cmd_abs_tcp_pose)
 
@@ -151,11 +152,11 @@ class Env():
         # [Note] ここは真値で評価
         success_range_of_pos = 0.003
         success_range_of_orn = 0.02
-        success = (np.linalg.norm(self.act_rel_tcp_pose[:3]) <= success_range_of_pos and \
-                    np.linalg.norm(self.act_rel_tcp_pose[3:]) <= success_range_of_orn)
+        success = (np.linalg.norm(self._act_rel_tcp_pose[:3]) <= success_range_of_pos and \
+                    np.linalg.norm(self._act_rel_tcp_pose[3:]) <= success_range_of_orn)
 
         # [Note] ここは真値で評価は正しくない気がする．
-        out_range_of_pos = 0.05
+        out_range_of_pos = 0.1
         out_range_of_orn = 0.8
         out_range = any([abs(pos) > out_range_of_pos for pos in act_pose_noisy[:3]]) \
                 or any([abs(orn) > out_range_of_orn for orn in act_pose_noisy[3:6]])
@@ -163,16 +164,16 @@ class Env():
         return act_pose_noisy, scaled_act_force, success, out_range
 
     def observe_state(self, mode='rel'):
-        self.act_abs_tcp_pose, self.act_force = self.robot.get_state()
-        self.act_abs_work_pose = self.work.get_state()
+        self._act_abs_tcp_pose, self.act_force = self.robot.get_state()
+        self._act_abs_work_pose = self.work.get_state()
 
         self._act_rel_tcp_pose = np.array(self._act_abs_tcp_pose) - np.array(self._act_abs_work_pose)
         '''
         ノイズ処理
         '''
         act_rel_tcp_pose_noisy = np.zeros(6)
-        act_rel_tcp_pose_noisy[:3] = self.act_rel_tcp_pose[:3] + self.initial_pos_noise
-        act_rel_tcp_pose_noisy[3:6] = self.act_rel_tcp_pose[3:6] + self.initial_orn_noise
+        act_rel_tcp_pose_noisy[:3] = self._act_rel_tcp_pose[:3] + self.initial_pos_noise
+        act_rel_tcp_pose_noisy[3:6] = self._act_rel_tcp_pose[3:6] + self.initial_orn_noise
 
         act_rel_tcp_pose_noisy[:3] += np.random.uniform(-self.max_step_pos_noise,
                                                     self.max_step_pos_noise, 3)
@@ -182,11 +183,11 @@ class Env():
             return act_rel_tcp_pose_noisy, self.act_force
         elif mode == 'abs':
             act_abs_tcp_pose_noisy = np.zeros(6)
-            act_abs_tcp_pose_noisy[:3] = self.act_abs_tcp_pose[:3] + self.initial_pos_noise
-            act_abs_tcp_pose_noisy[3:6] = self.act_abs_tcp_pose[3:6] + self.initial_orn_noise
+            act_abs_tcp_pose_noisy[:3] = self._act_abs_tcp_pose[:3] + self.initial_pos_noise
+            act_abs_tcp_pose_noisy[3:6] = self._act_abs_tcp_pose[3:6] + self.initial_orn_noise
             act_abs_work_pose_noisy = np.zeros(6)
-            act_abs_work_pose_noisy[:3] = self.act_abs_work_pose[:3] + self.initial_pos_noise
-            act_abs_work_pose_noisy[3:6] = self.act_abs_work_pose[3:6] + self.initial_orn_noise
+            act_abs_work_pose_noisy[:3] = self._act_abs_work_pose[:3] + self.initial_pos_noise
+            act_abs_work_pose_noisy[3:6] = self._act_abs_work_pose[3:6] + self.initial_orn_noise
             return act_abs_tcp_pose_noisy, act_abs_work_pose_noisy, self.act_force
 
     def calc_reward(self, relative_pose, success, out_range, act_step):

@@ -11,7 +11,7 @@ class MLPQFunction{
 }
 
 class MLPActorCritic{
-    - __init__(self, observation_space, action_space, hidden_sizes=(256,256), activation=nn.ReLU): void
+    - __init__(self, observation_space, action_space, hidden_sizes, activation): void
     + act(self, obs, deterministic=False): a.numpy
 }
 
@@ -33,7 +33,7 @@ MLPActorCritic *-- MLPQFunction
 class ReplayBuffer {
     - __init__(self, obs_dim, act_dim, size): void
     + store(self, obs, act, rew, next_obs, done): void
-    + sample_batch(self, batch_size=32): {k: torch.as_tensor(v, dtype=torch.float32) for k,v in batch.items()}
+    + sample_batch(self, batch_size): torch.as_tensor
 }
 
 @enduml

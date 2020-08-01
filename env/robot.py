@@ -30,7 +30,7 @@ class Manipulator():
         self.sim_times = 30
         self.act_abs_tcp_pose = np.zeros(6)
         self.act_wrist_force = np.zeros(6)
-        self.sim_interval = 0.004 # [sec]
+        self.sim_interval = 0.001 # [sec]
 
         self.ud = UrdfDesigner()
         self.set_tool_pose(tool_pose)
@@ -80,8 +80,14 @@ class Manipulator():
         print(act_pos)
 
     def reset_joint(self, angle):
-        for i in range(7):
-            p.resetJointState(self.robot_id, i, targetValue=angle[i])
+        #for i in range(7):
+        #    p.resetJointState(self.robot_id, i, targetValue=angle[i])
+        p.resetJointState(self.robot_id, 0, targetValue=angle[0])
+        p.resetJointState(self.robot_id, 1, targetValue=angle[1])
+        p.resetJointState(self.robot_id, 3, targetValue=angle[2])
+        p.resetJointState(self.robot_id, 4, targetValue=angle[3])
+        p.resetJointState(self.robot_id, 5, targetValue=angle[4])
+        p.resetJointState(self.robot_id, 6, targetValue=angle[5])
         p.stepSimulation()
 
     def move_to_joint(self, cmd_joint_pos):
@@ -89,11 +95,11 @@ class Manipulator():
         v_gain = 0.6 # 0.6
 
         p.setJointMotorControlArray(self.robot_id, \
-            [0, 1, 2, 3, 4, 5, 6], \
+            [0, 1, 3, 4, 5, 6], \
             p.POSITION_CONTROL, \
             targetPositions = cmd_joint_pos, \
-            positionGains = np.ones(7) * p_gain, \
-            velocityGains = np.ones(7) * v_gain)
+            positionGains = np.ones(6) * p_gain, \
+            velocityGains = np.ones(6) * v_gain)
 
         for step in range(self.sim_times):
             p.stepSimulation()
