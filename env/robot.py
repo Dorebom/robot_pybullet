@@ -11,21 +11,8 @@ from scipy.spatial.transform import Rotation as R
 from utils.modify_urdf import UrdfDesigner
 
 class Manipulator():
-    '''
-    1. Function list
-    __init__
-    load
-    remove
-    set_tool_pose
-    reset_joint
-    reset_pose
-    move_to_joint
-    move_to_pose
-    calc_ik
-    '''
-
     def __init__(self, tool_pose=[0, 0, 0, 0, 0, 0], base_pose=[0, 0, 0, 0, 0, 0]):
-        self.end_effector_link_index = 9
+        self.end_effector_link_index = 8
         self.force_joint_index = 7
         self.sim_times = 30
         self.act_abs_tcp_pose = np.zeros(6)
@@ -39,7 +26,7 @@ class Manipulator():
     def load(self, base_pose):
         #p.resetSimulation()
         orn_q = p.getQuaternionFromEuler(base_pose[3:6])
-        self.robot_id = p.loadURDF("urdf/kuka_iiwa/modified_model.urdf", basePosition=base_pose[:3], baseOrientation=orn_q)
+        self.robot_id = p.loadURDF("urdf/kuka_iiwa_6/modified_model.urdf", basePosition=base_pose[:3], baseOrientation=orn_q)
         print('robot joint num:',p.getNumJoints(self.robot_id))
         p.enableJointForceTorqueSensor(self.robot_id, self.force_joint_index)
         self.reset_joint([0.0, 0.0, 0.0, -0.5*np.pi, 0.0, 0.5*np.pi, 0.0])
@@ -80,14 +67,8 @@ class Manipulator():
         print(act_pos)
 
     def reset_joint(self, angle):
-        #for i in range(7):
-        #    p.resetJointState(self.robot_id, i, targetValue=angle[i])
-        p.resetJointState(self.robot_id, 0, targetValue=angle[0])
-        p.resetJointState(self.robot_id, 1, targetValue=angle[1])
-        p.resetJointState(self.robot_id, 3, targetValue=angle[2])
-        p.resetJointState(self.robot_id, 4, targetValue=angle[3])
-        p.resetJointState(self.robot_id, 5, targetValue=angle[4])
-        p.resetJointState(self.robot_id, 6, targetValue=angle[5])
+        for i in range(6):
+            p.resetJointState(self.robot_id, i, targetValue=angle[i])
         p.stepSimulation()
 
     def move_to_joint(self, cmd_joint_pos):
@@ -95,7 +76,7 @@ class Manipulator():
         v_gain = 0.6 # 0.6
 
         p.setJointMotorControlArray(self.robot_id, \
-            [0, 1, 3, 4, 5, 6], \
+            [0, 1, 2, 3, 4, 5], \
             p.POSITION_CONTROL, \
             targetPositions = cmd_joint_pos, \
             positionGains = np.ones(6) * p_gain, \

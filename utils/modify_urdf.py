@@ -6,7 +6,7 @@ class UrdfDesigner():
 
     def load(self,name='robot'):
         if name == 'robot':
-            urdf_file = 'urdf/kuka_iiwa/basic_model.urdf'
+            urdf_file = 'urdf/kuka_iiwa_6/basic_model.urdf'
             with open(urdf_file) as f:
                 self.tree = etree.parse(f)
                 self.name = name
@@ -16,7 +16,7 @@ class UrdfDesigner():
     def export(self):
         if self.name == 'robot':
             self.tree.write(
-                'urdf/kuka_iiwa/modified_model.urdf',
+                'urdf/kuka_iiwa_6/modified_model.urdf',
                 pretty_print = True,
                 xml_declaration = True,
                 encoding = "utf-8" )
