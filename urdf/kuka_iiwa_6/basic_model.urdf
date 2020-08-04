@@ -333,7 +333,7 @@
   <link name="marker_x">
     <visual>
       <geometry>
-        <box size="0.005 0.001 0.001"/>
+        <box size="0.01 0.001 0.001"/>
       </geometry>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <material name="marker_red"/>
@@ -349,7 +349,7 @@
   <link name="marker_y">
     <visual>
       <geometry>
-        <box size="0.001 0.005 0.001"/>
+        <box size="0.001 0.01 0.001"/>
       </geometry>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <material name="marker_green"/>
@@ -365,7 +365,7 @@
   <link name="marker_z">
     <visual>
       <geometry>
-        <box size="0.001 0.001 0.005"/>
+        <box size="0.001 0.001 0.01"/>
       </geometry>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <material name="marker_blue"/>

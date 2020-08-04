@@ -20,9 +20,19 @@ if __name__ == '__main__':
     p.loadURDF("urdf/plane/plane.urdf", plane_pos)
 
     robot_base_pose = [0, 0, 0, 0, 0, 0]
-    robot_tool_pose = [0, 0, -0.05, 0, 0, 0]
+    robot_tool_pose = [0, 0, 0, 0, 0, 0]
 
     robot = Manipulator(tool_pose=robot_tool_pose, base_pose=robot_base_pose)
 
+    robot.reset_joint([0, -0.5 * np.pi, -np.pi, 0.0, 0.5 * np.pi, 0.0])
 
-    time.sleep(3)
+    tcp_pose, force, joint_pos, wrist_pose = robot.get_state()
+
+    print('tcp_pose: ', tcp_pose)
+    print('joint_pos: ', joint_pos)
+    print('wrist_pose: ', wrist_pose)
+    print('wrist_orn_m: ', np.array(p.getMatrixFromQuaternion(p.getQuaternionFromEuler(wrist_pose[3:6]))).reshape((3,3)))
+
+    robot.calc_ik(tcp_pose)
+
+    time.sleep(1)
