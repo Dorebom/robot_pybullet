@@ -24,7 +24,8 @@ class Manipulator():
         self.ud = UrdfDesigner()
         self.set_tool_pose(tool_pose)
         self.load(base_pose)
-        link_param = [0, 0, 0, 0.36, 0.42, 0.4, 0.081]
+        #link_param = [0, 0, 0, 0.36, 0.42, 0.4, 0.081]
+        link_param = [0, 0, 0, 0.36, 0.42, 0.4, 0.126]
         self.ik = InverseKinematics6(self.robot_id, link_param, tool_pose=tool_pose)
 
     def load(self, base_pose):
