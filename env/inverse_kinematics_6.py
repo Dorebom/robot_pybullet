@@ -30,33 +30,48 @@ class InverseKinematics6():
     def _calc_wrist_pose(self, tcp_pose):
         c4 = self.link_param[6]
 
+        # TCP
         print("tcp_pos:", tcp_pose[:3])
         print("tcp_orn(input):", tcp_pose[3:6])
         tcp_pos = np.array(tcp_pose[:3])
         rot_tcp_orn = R.from_euler('XYZ', tcp_pose[3:6])
-        inv_rot_tcp_orn = R.from_matrix(rot_tcp_orn.as_matrix()).inv().as_matrix()
+        inv_rot_tcp_orn = R.from_matrix(rot_tcp_orn.as_matrix()).inv()
         print("tcp_orn(scipy):", rot_tcp_orn.as_euler('XYZ'))
-        print("inv_tcp_orn:", R.from_matrix(inv_rot_tcp_orn).as_euler('XYZ'))
-
+        print("inv_tcp_orn:", inv_rot_tcp_orn.as_euler('XYZ'))
+        # TOOL
         tool_pos = np.array(self.tool_pose[:3]) + np.array([0.0, 0.0, c4])
-        rot_tool_orn = R.from_euler('XYZ', self.tool_pose[3:6])
-        inv_rot_tool_orn = R.from_matrix(rot_tool_orn.as_matrix()).inv().as_matrix()
+        #rot_tool_orn = R.from_euler('XYZ', self.tool_pose[3:6])
+        rot_tool_orn = R.from_rotvec(self.tool_pose[3:6])
+        inv_rot_tool_orn = R.from_matrix(rot_tool_orn.as_matrix()).inv()
         print("tool_pos:", tool_pos)
         print("tool_orn:", self.tool_pose[3:6])
-        print("inv_tool_orn:", R.from_matrix(inv_rot_tool_orn).as_euler('XYZ'))
+        print("inv_tool_orn:", inv_rot_tool_orn.as_euler('XYZ'))
 
-        rot_w_prime_orn = R.from_matrix(np.dot(rot_tcp_orn.as_matrix(), inv_rot_tool_orn))
-        # ここから
+        rot_world_link_orn = R.from_matrix(np.dot(rot_tool_orn.as_matrix(), rot_tcp_orn.as_matrix()))
+        print("world_link_orn:", rot_world_link_orn.as_euler('XYZ'))
+
+        rot_tmp_world_link_orn = R.from_euler('XYZ', [-3.00000000e-01, -1.31066147e-12,  1.66991524e-13])
+        #rot_tmp_world_link_orn = R.from_rotvec([-3.00000000e-01, -1.31066147e-12,  1.66991524e-13])
+        
+        #rot_tmp_tcp_orn = R.from_matrix(np.dot(rot_tmp_world_link_orn.as_matrix(), rot_tool_orn.as_matrix()))
+        rot_tmp_tcp_orn = R.from_matrix(np.dot(rot_tool_orn.as_matrix(), rot_tmp_world_link_orn.as_matrix()))
+        print("tmp_tcp_orn:", rot_tmp_tcp_orn.as_euler('XYZ'))
+
+
+
+        rot_w_prime_orn = R.from_matrix(np.dot(rot_tcp_orn.as_matrix(), inv_rot_tool_orn.as_matrix()))
         print("w_prime_orn:", rot_w_prime_orn.as_euler('XYZ'))
 
-        rot_w_orn = R.from_matrix(rot_w_prime_orn.as_matrix(), )
-
-        wrist_pos = tcp_pos - np.dot(rot_tcp_orn.as_matrix(), tmp_1)
+        rot_change_rw = R.from_euler('XYZ', [0, np.pi, 0])
+        inv_rot_change_rw = R.from_matrix(rot_change_rw.as_matrix()).inv()
+        rot_w_orn = R.from_matrix(np.dot(rot_w_prime_orn.as_matrix(), inv_rot_change_rw.as_matrix()))
+        print("rot_w_orn:", rot_w_orn.as_euler('XYZ'))
+        wrist_pos = tcp_pos - np.dot(rot_w_orn.as_matrix(), tool_pos)
         print('wrist_pos:', wrist_pos)
 
 
         inv_uc_orn_M = R.from_matrix(np.array(p.getMatrixFromQuaternion(p.getQuaternionFromEuler(self.tool_pose[3:6]) )).reshape([3,3])).inv().as_matrix()
-        wrist_orn_m = np.dot(inv_uc_orn_M, tcp_orn_m)
+        wrist_orn_m = np.dot(inv_uc_orn_M, rot_tcp_orn.as_matrix())
 
         rot_wr = R.from_euler('XYZ', [0.0, 0, 0])
         rot_wr_m = rot_wr.as_matrix()

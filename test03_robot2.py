@@ -28,14 +28,14 @@ if __name__ == '__main__':
 
     tcp_pose, force, joint_pos, wrist_pose = robot.get_state()
 
-    print('tcp_pose: ', tcp_pose)
-    print('joint_pos: ', joint_pos)
-    print('wrist_pose: ', wrist_pose)
+    #print('tcp_pose: ', tcp_pose)
+    #print('joint_pos: ', joint_pos)
+    #print('wrist_pose: ', wrist_pose)
 
-    wrist_orn_m = np.array(p.getMatrixFromQuaternion(p.getQuaternionFromEuler(wrist_pose[3:6]))).reshape((3,3))
-    rot = R.from_matrix(wrist_orn_m)
-    rot_e = np.array(rot.as_euler('XYZ'))
-    print('wrist_orn_e: ', rot_e)
+    #wrist_orn_m = np.array(p.getMatrixFromQuaternion(p.getQuaternionFromEuler(wrist_pose[3:6]))).reshape((3,3))
+    #rot = R.from_matrix(wrist_orn_m)
+    #rot_e = np.array(rot.as_euler('XYZ'))
+    #print('wrist_orn_e: ', rot_e)
 
     robot.calc_ik(tcp_pose)
 

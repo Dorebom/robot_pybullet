@@ -153,21 +153,37 @@ class Manipulator():
 
 
     def get_state(self):
+        # joint
         act_joint_pos = np.zeros(6)
         for i in range(6):
             act_joint_pos[i] = p.getJointState(self.robot_id, i)[0]
-            if abs(act_joint_pos[i]) < 1e-6:
+            if abs(act_joint_pos[i]) < 1e-8:
                 act_joint_pos[i] = 0.0
+        # TCP
         states = p.getLinkState(self.robot_id, self.end_effector_link_index)
         self.act_abs_tcp_pose[:3] = states[0]
         self.act_abs_tcp_pose[3:6] = p.getEulerFromQuaternion(states[1])
 
+        # Wrist force
         force_torque = np.array(p.getJointState(self.robot_id, self.force_joint_index)[2])
         self.act_wrist_force = force_torque/6500
 
+        # Wrist
         states = p.getLinkState(self.robot_id, self.wrist_link_index)
         act_wrist_pose = np.zeros(6)
         act_wrist_pose[:3] = states[4]
         act_wrist_pose[3:6] = p.getEulerFromQuaternion(states[5])
+
+        # World_link
+        states = p.getLinkState(self.robot_id, self.end_effector_link_index-2)
+        act_world_pose = np.zeros(6)
+        act_world_pose[:3] = states[0]
+        act_world_pose[3:6] = p.getEulerFromQuaternion(states[1])
+
+        print("====== GET STATE ======")
+        print("tcp_pose:", self.act_abs_tcp_pose)
+        print("world_link:", act_world_pose)
+        print("wrist_link:", act_wrist_pose)
+        print("====== END ======")
 
         return self.act_abs_tcp_pose, self.act_wrist_force, act_joint_pos, act_wrist_pose

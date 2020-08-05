@@ -269,6 +269,7 @@
     </collision>
   </link>
 
+  <!-- joint between link_7 and world -->
   <joint name="world_joint" type="fixed">
     <parent link="lbr_iiwa_link_7"/>
     <child link="world_link"/>
