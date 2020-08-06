@@ -164,7 +164,7 @@ class Env():
         return act_pose_noisy, scaled_act_force, success, out_range
 
     def observe_state(self, mode='rel'):
-        self._act_abs_tcp_pose, self.act_force = self.robot.get_state()
+        self._act_abs_tcp_pose, self.act_force, _ = self.robot.get_state()
         self._act_abs_work_pose = self.work.get_state()
 
         self._act_rel_tcp_pose = np.array(self._act_abs_tcp_pose) - np.array(self._act_abs_work_pose)

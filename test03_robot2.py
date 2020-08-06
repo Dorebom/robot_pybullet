@@ -20,23 +20,32 @@ if __name__ == '__main__':
     p.loadURDF("urdf/plane/plane.urdf", plane_pos)
 
     robot_base_pose = [0, 0, 0, 0, 0, 0]
-    robot_tool_pose = [0, 0.1, 0, -0.3, 0.4, 0.2]
+    #robot_tool_pose = [0, 0, 0, -0.3, 0.4, 0.2]
+    robot_tool_pose = [0, 0, -0.1, 0.0, 0.0, 0.0]
 
     robot = Manipulator(tool_pose=robot_tool_pose, base_pose=robot_base_pose)
 
-    robot.reset_joint([0, -0.5 * np.pi, -np.pi, -0.3, 0.5 * np.pi, 0.0])
+    # Reset joint position
+    basic_joint = np.array([0.0, -0.5*np.pi, 1.0*np.pi, 0.0*np.pi, 0.5*np.pi, 0.0*np.pi])
+    add_joint = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+    robot.reset_joint(basic_joint + add_joint)
 
-    tcp_pose, force, joint_pos, wrist_pose = robot.get_state()
+    tcp_pose, force, joint_pos = robot.get_state()
+    print(tcp_pose)
 
-    #print('tcp_pose: ', tcp_pose)
-    #print('joint_pos: ', joint_pos)
-    #print('wrist_pose: ', wrist_pose)
+    robot.move_to_pose(np.array(tcp_pose) + np.array([0.0, 0, -0.3, 0.3, 0, 0]), mode='direct')
 
-    #wrist_orn_m = np.array(p.getMatrixFromQuaternion(p.getQuaternionFromEuler(wrist_pose[3:6]))).reshape((3,3))
-    #rot = R.from_matrix(wrist_orn_m)
-    #rot_e = np.array(rot.as_euler('XYZ'))
-    #print('wrist_orn_e: ', rot_e)
+    tcp_pose, force, joint_pos = robot.get_state()
+    print(tcp_pose)
 
-    robot.calc_ik(tcp_pose)
+    robot.move_to_pose(np.array(tcp_pose) + np.array([0.0, 0, -0.3, 0.3, 0, 0]), mode='trajectory')
+
+    tcp_pose, force, joint_pos = robot.get_state()
+    print(tcp_pose)
+
+    robot.move_to_pose(np.array(tcp_pose) + np.array([0.2, 0, +0.3, -0.3, 0, 0]), mode='trajectory')
+
+    tcp_pose, force, joint_pos = robot.get_state()
+    print(tcp_pose)
 
     time.sleep(1)

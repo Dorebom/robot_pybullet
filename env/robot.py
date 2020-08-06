@@ -13,13 +13,15 @@ from env.inverse_kinematics_6 import InverseKinematics6
 
 class Manipulator():
     def __init__(self, tool_pose=[0, 0, 0, 0, 0, 0], base_pose=[0, 0, 0, 0, 0, 0]):
-        self.end_effector_link_index = 8
+        self.end_effector_link_index = 9
         self.force_joint_index = 6
         self.wrist_link_index = 4
-        self.sim_times = 30
+        self.sim_times = 50
         self.act_abs_tcp_pose = np.zeros(6)
         self.act_wrist_force = np.zeros(6)
-        self.sim_interval = 0.001 # [sec]
+        self.sim_interval = 0.004 # [sec]
+
+        self.act_joint_pos = np.zeros(6)
 
         self.ud = UrdfDesigner()
         self.set_tool_pose(tool_pose)
@@ -75,10 +77,12 @@ class Manipulator():
         for i in range(6):
             p.resetJointState(self.robot_id, i, targetValue=angle[i])
         p.stepSimulation()
+        self.move_to_joint(angle)
+        self.get_state()
 
     def move_to_joint(self, cmd_joint_pos):
-        p_gain = 1.0 # 2.2
-        v_gain = 0.6 # 0.6
+        p_gain = 0.1 # 2.2
+        v_gain = 1.0 # 0.6
 
         p.setJointMotorControlArray(self.robot_id, \
             [0, 1, 2, 3, 4, 5], \
@@ -86,15 +90,19 @@ class Manipulator():
             targetPositions = cmd_joint_pos, \
             positionGains = np.ones(6) * p_gain, \
             velocityGains = np.ones(6) * v_gain)
-
         for step in range(self.sim_times):
             p.stepSimulation()
             time.sleep(self.sim_interval)
+            # joint
+            self.act_joint_pos = self.get_joint()
+            if np.linalg.norm(np.array(cmd_joint_pos) - np.array(self.act_joint_pos)) < 0.001:
+                step = self.sim_times
 
     def move_to_pose(self, abs_tcp_pose, mode='trajectory'):
 
+        offset_pose = np.array([-0.005, 0, 0, 0, 0, 0])
         if mode == 'direct':
-            cmd_joint_pos = self.calc_ik(abs_tcp_pose)
+            cmd_joint_pos = self.calc_ik(np.array(abs_tcp_pose) + offset_pose)
             self.move_to_joint(cmd_joint_pos)
         elif mode == 'trajectory':
             accel_coeff = 100
@@ -103,10 +111,10 @@ class Manipulator():
             # [Points to be improved]
             # Manipulatorのサイズで、回転角に掛ける係数を調整したほうがいいけど、
             # 今は時間がないため、後回し
-            diff_pose = np.array(abs_tcp_pose) - self.act_abs_tcp_pose
+            diff_pose = np.array(abs_tcp_pose) - self.act_abs_tcp_pose + offset_pose
             norm_diff_pose = np.linalg.norm(diff_pose)
 
-            if norm_diff_pose > 0.001:
+            if norm_diff_pose > 0.0002:
                 if norm_diff_pose < (max_velocity ** 2 / accel_coeff):
                     time_1 = np.sqrt(norm_diff_pose / accel_coeff)
                     time_2 = time_1
@@ -143,47 +151,28 @@ class Manipulator():
                     self.move_to_joint(cmd_joint_pos)
 
     def calc_ik(self, abs_tcp_pose):
-        '''
-        return p.calculateInverseKinematics(bodyUniqueId = self.robot_id, \
-                                            endEffectorLinkIndex = self.end_effector_link_index, \
-                                            targetPosition = abs_tcp_pose[:3], \
-                                            targetOrientation = p.getQuaternionFromEuler(abs_tcp_pose[3:6]))
-        '''
-        self.ik.calc_ik(abs_tcp_pose)
+        joint_pos = np.zeros(6)
+        joint_pos, flag = self.ik.calc_ik(abs_tcp_pose, self.act_joint_pos)
+        return joint_pos
 
-
-    def get_state(self):
-        # joint
+    def get_joint(self):
         act_joint_pos = np.zeros(6)
         for i in range(6):
-            act_joint_pos[i] = p.getJointState(self.robot_id, i)[0]
-            if abs(act_joint_pos[i]) < 1e-8:
-                act_joint_pos[i] = 0.0
+            j_state = p.getJointState(self.robot_id, i)
+            act_joint_pos[i] = j_state[0]
+        return act_joint_pos
+
+    def get_state(self):
+        p.stepSimulation()
+        # joint
+        self.act_joint_pos = self.get_joint()
         # TCP
         states = p.getLinkState(self.robot_id, self.end_effector_link_index)
-        self.act_abs_tcp_pose[:3] = states[0]
-        self.act_abs_tcp_pose[3:6] = p.getEulerFromQuaternion(states[1])
-
+        self.act_abs_tcp_pose[:3] = states[4]
+        self.act_abs_tcp_pose[3:6] = R.from_quat(states[5]).as_euler('XYZ')
         # Wrist force
+        force_torque = np.zeros(6)
         force_torque = np.array(p.getJointState(self.robot_id, self.force_joint_index)[2])
         self.act_wrist_force = force_torque/6500
 
-        # Wrist
-        states = p.getLinkState(self.robot_id, self.wrist_link_index)
-        act_wrist_pose = np.zeros(6)
-        act_wrist_pose[:3] = states[4]
-        act_wrist_pose[3:6] = p.getEulerFromQuaternion(states[5])
-
-        # World_link
-        states = p.getLinkState(self.robot_id, self.end_effector_link_index-2)
-        act_world_pose = np.zeros(6)
-        act_world_pose[:3] = states[0]
-        act_world_pose[3:6] = p.getEulerFromQuaternion(states[1])
-
-        print("====== GET STATE ======")
-        print("tcp_pose:", self.act_abs_tcp_pose)
-        print("world_link:", act_world_pose)
-        print("wrist_link:", act_wrist_pose)
-        print("====== END ======")
-
-        return self.act_abs_tcp_pose, self.act_wrist_force, act_joint_pos, act_wrist_pose
+        return self.act_abs_tcp_pose, self.act_wrist_force, self.act_joint_pos

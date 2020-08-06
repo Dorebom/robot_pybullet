@@ -80,7 +80,7 @@ class Trainer():
 
         scaled_a = self.agent.env.scale_action(a)
 
-        scaled_a = [0, 0, -0.001, 0, 0, 0]
+        scaled_a = [0, 0, 0.001, 0, 0, 0]
 
         new_obs, r, done, success = self.agent.env.step(action = scaled_a, step = self.act_step)
 
@@ -108,6 +108,9 @@ class Trainer():
         while self.ep < self.episodes:
 
             obs, r, done, success = self._train(obs)
+
+            print('ep:', self.ep, 'step:', self.act_step, 'pos:', obs[:3])
+            print('force', obs[6:12])
 
             tmp_episode_reward += r
 
