@@ -141,7 +141,6 @@ class InverseKinematics6():
 
         tcp_pos = np.array(tcp_pose[:3])
         tcp_orn = R.from_euler('XYZ', tcp_pose[3:6])
-        inv_rot_tcp_orn = R.from_matrix(tcp_orn.as_matrix()).inv()
 
         tool_pos = np.array(self.tool_pose[:3]) - np.array([0.0, 0.0, c4])
         rot_tool_orn = R.from_euler('XYZ', self.tool_pose[3:6])

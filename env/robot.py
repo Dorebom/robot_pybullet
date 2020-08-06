@@ -33,7 +33,7 @@ class Manipulator():
     def load(self, base_pose):
         #p.resetSimulation()
         orn_q = p.getQuaternionFromEuler(base_pose[3:6])
-        self.robot_id = p.loadURDF("urdf/kuka_iiwa_6/modified_model.urdf", basePosition=base_pose[:3], baseOrientation=orn_q)
+        self.robot_id = p.loadURDF("urdf/kuka_iiwa_6/modified_model.urdf", basePosition=base_pose[:3], baseOrientation=orn_q, useFixedBase=True)
         print('robot joint num:',p.getNumJoints(self.robot_id))
         p.enableJointForceTorqueSensor(self.robot_id, self.force_joint_index)
         self.reset_joint([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
@@ -92,7 +92,7 @@ class Manipulator():
             velocityGains = np.ones(6) * v_gain)
         for step in range(self.sim_times):
             p.stepSimulation()
-            time.sleep(self.sim_interval)
+            #time.sleep(self.sim_interval)
             # joint
             self.act_joint_pos = self.get_joint()
             if np.linalg.norm(np.array(cmd_joint_pos) - np.array(self.act_joint_pos)) < 0.001:

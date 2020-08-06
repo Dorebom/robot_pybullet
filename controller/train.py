@@ -36,7 +36,7 @@ class Trainer():
         self.robot_base_pose = np.array([0, 0, 0, 0, 0, 0])
         self.work_base_pose = np.array([0.5, 0, 0, 0, 0, 0])
         self.robot_tool_pose = np.array([0.0, 0.0, -0.15, 0, 0, 0])
-        self.rel_robot_tcp_pose = np.array([0.0, 0.0, 0.08, 0, 0, 0])
+        self.rel_robot_tcp_pose = np.array([0.0, 0.0, 0.02, 0, 0, 0])
         #self.rel_robot_tcp_pose[:3] += np.random.uniform(-0.02, 0.02, 3)
         #self.rel_robot_tcp_pose[3:] += np.random.uniform(-0.02, 0.02, 3)
 
@@ -53,7 +53,7 @@ class Trainer():
         self.robot_base_pose = np.array([0, 0, 0, 0, 0, 0])
         self.work_base_pose = np.array([0.5, 0, 0, 0, 0, 0])
         self.robot_tool_pose = np.array([0.0, 0.0, -0.15, 0, 0, 0])
-        self.rel_robot_tcp_pose = np.array([0.0, 0.0, 0.08, 0, 0, 0])
+        self.rel_robot_tcp_pose = np.array([0.0, 0.0, 0.02, 0, 0, 0])
         #self.rel_robot_tcp_pose[:3] += np.random.uniform(-0.02, 0.02, 3)
         #self.rel_robot_tcp_pose[3:] += np.random.uniform(-0.02, 0.02, 3)
 
@@ -80,7 +80,7 @@ class Trainer():
 
         scaled_a = self.agent.env.scale_action(a)
 
-        scaled_a = [0, 0, 0.001, 0, 0, 0]
+        #scaled_a = [0, 0, -0.001, 0, 0, 0]
 
         new_obs, r, done, success = self.agent.env.step(action = scaled_a, step = self.act_step)
 
@@ -110,7 +110,7 @@ class Trainer():
             obs, r, done, success = self._train(obs)
 
             print('ep:', self.ep, 'step:', self.act_step, 'pos:', obs[:3])
-            print('force', obs[6:12])
+            print('done:', done)
 
             tmp_episode_reward += r
 

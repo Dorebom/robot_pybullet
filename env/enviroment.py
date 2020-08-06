@@ -9,8 +9,8 @@ from env.work import Work
 
 class Env():
     def __init__(self, reward,
-                step_max_pos = 0.0005,
-                step_max_orn = 0.01,
+                step_max_pos = 0.002,
+                step_max_orn = 0.02,
                 initial_pos_noise = 0.001,
                 initial_orn_noise = 0.001,
                 step_pos_noise = 0.0002,
@@ -97,8 +97,13 @@ class Env():
                         robot_base_pose = base_pose,
                         robot_tool_pose = tool_pose,
                         work_base_pose = work_pose)
+        # For 処理の高速化
+        '''
+        if np.linalg.norm( np.array(tool_pose) - self.prev_tool_pose ) < 1e-6:
+
+        else:
+        '''
         # Reset env
-        self.robot.remove()
         p.resetSimulation()
         # Load Plane
         p.loadURDF("urdf/plane/plane.urdf", self.plane_pos)
@@ -106,11 +111,15 @@ class Env():
         self.work.reset(base_pose = work_pose)
         # Reset Robot
         self.robot.reset_base(base_pose=base_pose, tool_pose=tool_pose)
+
+
         self._reset_robot_pose(mode='rel', tcp_pose=tcp_pose)
         self.initial_pos_noise = np.random.uniform(-self.max_initial_pos_noise,
                                                     self.max_initial_pos_noise, 3)
         self.initial_orn_noise = np.random.uniform(-self.max_initial_orn_noise,
                                                     self.max_initial_orn_noise, 3)
+
+        self.prev_tool_pose = tool_pose
 
         return self.observe_state(mode = mode)
 
@@ -125,7 +134,8 @@ class Env():
         cmd_abs_tcp_pose[:3] = np.array(self._act_abs_tcp_pose[:3]) + np.array(action[:3])
         cmd_abs_tcp_pose[3:6] = np.array(self._act_abs_tcp_pose[3:6]) + np.array(action[3:6])
 
-        self.robot.move_to_pose(cmd_abs_tcp_pose)
+        print('next_pose:', cmd_abs_tcp_pose)
+        self.robot.move_to_pose(cmd_abs_tcp_pose, mode='direct')
 
         pose, force, success, out_range = self.decision()
 
@@ -151,7 +161,7 @@ class Env():
 
         # [Note] ここは真値で評価
         success_range_of_pos = 0.003
-        success_range_of_orn = 0.02
+        success_range_of_orn = 0.04
         success = (np.linalg.norm(self._act_rel_tcp_pose[:3]) <= success_range_of_pos and \
                     np.linalg.norm(self._act_rel_tcp_pose[3:]) <= success_range_of_orn)
 
