@@ -157,7 +157,8 @@ class SoftActorCritic():
                 num_test_episodes = 10,
                 max_ep_len = 1000,
                 #logger_kwargs = dict(),
-                save_freq = 1):
+                save_freq = 1,
+                hidden_sizes = (50, 50, 50)):
 
         self.env = env_fn
         self.obs_dim = self.env.observation_space.shape
@@ -184,7 +185,7 @@ class SoftActorCritic():
         # Create actor-critic module and target networks
         self.ac = self.actor_critic(self.env.observation_space,
                                     self.env.action_space,
-                                    **ac_kwargs)
+                                    hidden_sizes=hidden_sizes)
         self.ac_targ = deepcopy(self.ac)
 
         # Freeze target networks with respect to optimizers (only update via polyak averaging)

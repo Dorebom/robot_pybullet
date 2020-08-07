@@ -36,7 +36,7 @@ class Trainer():
         self.robot_base_pose = np.array([0, 0, 0, 0, 0, 0])
         self.work_base_pose = np.array([0.5, 0, 0, 0, 0, 0])
         self.robot_tool_pose = np.array([0.0, 0.0, -0.15, 0, 0, 0])
-        self.rel_robot_tcp_pose = np.array([0.0, 0.0, 0.02, 0, 0, 0])
+        self.rel_robot_tcp_pose = np.array([0.0, 0.0, 0.01, 0, 0, 0])
         #self.rel_robot_tcp_pose[:3] += np.random.uniform(-0.02, 0.02, 3)
         #self.rel_robot_tcp_pose[3:] += np.random.uniform(-0.02, 0.02, 3)
 
@@ -80,13 +80,13 @@ class Trainer():
 
         scaled_a = self.agent.env.scale_action(a)
 
-        #scaled_a = [0, 0, -0.001, 0, 0, 0]
+        #scaled_a = [0, 0, -0.0001, 0, 0, 0]
 
         new_obs, r, done, success = self.agent.env.step(action = scaled_a, step = self.act_step)
 
         self.agent.replay_buffer.store(obs, a, r, new_obs, done)
 
-        self.obs = new_obs
+        #obs = new_obs
 
         # Update handling
         if self.total_step_counter >= self.agent.update_after \
@@ -95,7 +95,7 @@ class Trainer():
                 batch = self.agent.replay_buffer.sample_batch(self.agent.batch_size)
                 self.agent.update(data=batch)
 
-        return obs, r, done, success
+        return new_obs, r, done, success
 
     def train(self):
         # initialize
@@ -107,12 +107,14 @@ class Trainer():
 
         while self.ep < self.episodes:
 
-            obs, r, done, success = self._train(obs)
+            new_obs, r, done, success = self._train(obs)
 
-            print('ep:', self.ep, 'step:', self.act_step, 'pos:', obs[:3])
+            print('ep:', self.ep, 'step:', self.act_step, 'pos:', new_obs[:3])
             print('done:', done)
 
             tmp_episode_reward += r
+
+            obs = new_obs
 
             self.act_step += 1
 

@@ -114,11 +114,12 @@ class Env():
 
 
         self._reset_robot_pose(mode='rel', tcp_pose=tcp_pose)
+        '''
         self.initial_pos_noise = np.random.uniform(-self.max_initial_pos_noise,
                                                     self.max_initial_pos_noise, 3)
         self.initial_orn_noise = np.random.uniform(-self.max_initial_orn_noise,
                                                     self.max_initial_orn_noise, 3)
-
+        '''
         self.prev_tool_pose = tool_pose
 
         return self.observe_state(mode = mode)
@@ -134,7 +135,6 @@ class Env():
         cmd_abs_tcp_pose[:3] = np.array(self._act_abs_tcp_pose[:3]) + np.array(action[:3])
         cmd_abs_tcp_pose[3:6] = np.array(self._act_abs_tcp_pose[3:6]) + np.array(action[3:6])
 
-        print('next_pose:', cmd_abs_tcp_pose)
         self.robot.move_to_pose(cmd_abs_tcp_pose, mode='direct')
 
         pose, force, success, out_range = self.decision()

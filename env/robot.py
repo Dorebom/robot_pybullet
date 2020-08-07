@@ -13,13 +13,13 @@ from env.inverse_kinematics_6 import InverseKinematics6
 
 class Manipulator():
     def __init__(self, tool_pose=[0, 0, 0, 0, 0, 0], base_pose=[0, 0, 0, 0, 0, 0]):
-        self.end_effector_link_index = 9
+        self.end_effector_link_index = 8
         self.force_joint_index = 6
         self.wrist_link_index = 4
-        self.sim_times = 50
+        self.sim_times = 100
         self.act_abs_tcp_pose = np.zeros(6)
         self.act_wrist_force = np.zeros(6)
-        self.sim_interval = 0.004 # [sec]
+        self.sim_interval = 0.001 # [sec]
 
         self.act_joint_pos = np.zeros(6)
 
@@ -31,10 +31,8 @@ class Manipulator():
         self.ik = InverseKinematics6(self.robot_id, link_param, tool_pose=tool_pose)
 
     def load(self, base_pose):
-        #p.resetSimulation()
         orn_q = p.getQuaternionFromEuler(base_pose[3:6])
         self.robot_id = p.loadURDF("urdf/kuka_iiwa_6/modified_model.urdf", basePosition=base_pose[:3], baseOrientation=orn_q, useFixedBase=True)
-        print('robot joint num:',p.getNumJoints(self.robot_id))
         p.enableJointForceTorqueSensor(self.robot_id, self.force_joint_index)
         self.reset_joint([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
         p.stepSimulation()
@@ -71,7 +69,6 @@ class Manipulator():
             act_pos = p.getLinkState(self.robot_id, self.end_effector_link_index)[0]
             diff_pos = np.linalg.norm(np.array(abs_tcp_pose[:3]) - np.array(act_pos))
             iter_count += 1
-        print(act_pos)
 
     def reset_joint(self, angle):
         for i in range(6):
@@ -100,7 +97,7 @@ class Manipulator():
 
     def move_to_pose(self, abs_tcp_pose, mode='trajectory'):
 
-        offset_pose = np.array([-0.005, 0, 0, 0, 0, 0])
+        offset_pose = np.array([0, 0, 0, 0, 0, 0]) # [-0.005, 0, 0, 0, 0, 0]
         if mode == 'direct':
             cmd_joint_pos = self.calc_ik(np.array(abs_tcp_pose) + offset_pose)
             self.move_to_joint(cmd_joint_pos)
